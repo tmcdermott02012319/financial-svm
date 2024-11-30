@@ -3,6 +3,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import balanced_accuracy_score, precision_score, recall_score, f1_score
+from sklearn.preprocessing import MaxAbsScaler
 from imblearn.over_sampling import SMOTE
 
 def load_dataset():
@@ -44,6 +45,13 @@ if __name__ == "__main__":
 	x_train, vectorizer = extract_features(x_train)
 	x_test = vectorizer.transform(x_test)
 	x_val = vectorizer.transform(x_val)
-	x_res, y_res = SMOTE().fit_resample(x_train, y_train)
-	model = train_model(x_res, y_res, x_val, y_val)
+	scaler = MaxAbsScaler() # recommended for sparse matrices instead of StandardScaler
+	x_train = scaler.fit_transform(x_train)
+	x_test = scaler.fit_transform(x_test)
+	x_val = scaler.fit_transform(x_val)
+	sampler = SMOTE()
+	x_train, y_train = sampler.fit_resample(x_train, y_train)
+	x_test, y_test = sampler.fit_resample(x_test, y_test)
+	x_val, y_val = sampler.fit_resample(x_val, y_val)
+	model = train_model(x_train, y_train, x_val, y_val)
 	evaluate_model(model, x_test, y_test)
