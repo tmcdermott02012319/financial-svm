@@ -4,10 +4,11 @@ from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import balanced_accuracy_score, precision_score, recall_score, f1_score
 from imblearn.over_sampling import SMOTE
+from pickle import load, dump
 
 
 def load_dataset():
-	with open("FinancialPhraseBank-v1.0/Sentences_AllAgree.txt", "r", encoding = "latin1") as file:
+	with open("FinancialPhraseBank-v1.0/Sentences_50Agree.txt", "r", encoding = "latin1") as file:
 		data = file.read()
 	data = [line.split("@") for line in data.split("\n") if line]
 	x = [line[0] for line in data]
@@ -18,21 +19,28 @@ def load_dataset():
 	return x_train, x_test, x_val, y_train, y_test, y_val
 
 
-def extract_features(x_train):	
-	vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_df=0.5, sublinear_tf=True, stop_words='english')
+def extract_features(x_train):
+	stop_words = [' \'s', 'the', ' (', ' )', ' .',  'herein', 'thereby', 'whereas', 'hereinbefore', 'aforementioned']	
+	vectorizer = TfidfVectorizer(ngram_range=(1, 5), max_df=0.5, sublinear_tf=True, stop_words=stop_words)
 	x_train = vectorizer.fit_transform(x_train)
+	with open("vectorizer.pkl", "wb") as file:
+		dump(vectorizer, file)
 	return x_train, vectorizer
 
 def train_model(x_train, y_train, x_val, y_val):
-	model = SVC(class_weight="balanced", probability=True)
+	_model = SVC(class_weight="balanced", probability=True)
 	params = {
-		"C": [0.1, 1, 10],
+		"C": [.001, .01, 0.1, 1, 10, 100],
 		"kernel": ["linear", "poly", "rbf", "sigmoid"],
-		"gamma": [0.1, 1, "scale", "auto"]
+		"gamma": [0.1, 1, "scale", "auto"],
+		"degree": [2, 3, 4]
 	}
-	optimizer = GridSearchCV(model, params, scoring="balanced_accuracy", n_jobs=-1)
+	optimizer = GridSearchCV(_model, params, scoring="balanced_accuracy", n_jobs=-1)
 	optimizer.fit(x_val, y_val)
-	return optimizer.best_estimator_.fit(x_train, y_train)
+	model = optimizer.best_estimator_.fit(x_train, y_train)
+	with open("model.pkl", "wb") as file:
+		dump(model, file)
+	return model
 
 def evaluate_model(model, x_test, y_test):
 	y_pred = model.predict(x_test)
@@ -48,4 +56,6 @@ if __name__ == "__main__":
 	x_val = vectorizer.transform(x_val)
 	x_res, y_res = SMOTE().fit_resample(x_train, y_train)
 	model = train_model(x_res, y_res, x_val, y_val)
+	""" with open("model.pkl", "rb") as file:
+		model = load(file) """
 	evaluate_model(model, x_test, y_test)
