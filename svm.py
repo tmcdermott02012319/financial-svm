@@ -8,7 +8,7 @@ from pickle import load, dump
 
 
 def load_dataset():
-	with open("FinancialPhraseBank-v1.0/Sentences_50Agree.txt", "r", encoding = "latin1") as file:
+	with open("FinancialPhraseBank-v1.0/Sentences_AllAgree.txt", "r", encoding = "latin1") as file:
 		data = file.read()
 	data = [line.split("@") for line in data.split("\n") if line]
 	x = [line[0] for line in data]
@@ -20,8 +20,8 @@ def load_dataset():
 
 
 def extract_features(x_train):
-	stop_words = [' \'s', 'the', ' (', ' )', ' .',  'herein', 'thereby', 'whereas', 'hereinbefore', 'aforementioned']	
-	vectorizer = TfidfVectorizer(ngram_range=(1, 5), max_df=0.5, sublinear_tf=True, stop_words=stop_words)
+	stop_words = [' \'s', 'the', ' (', ' )', ' .',  'herein', 'thereby', 'whereas', 'hereinbefore', 'aforementioned', 'the']	
+	vectorizer = TfidfVectorizer(ngram_range=(1, 4), max_df=0.5, sublinear_tf=True, stop_words=stop_words)
 	x_train = vectorizer.fit_transform(x_train)
 	with open("vectorizer.pkl", "wb") as file:
 		dump(vectorizer, file)
@@ -51,11 +51,21 @@ def evaluate_model(model, x_test, y_test):
 
 if __name__ == "__main__":
 	x_train, x_test, x_val, y_train, y_test, y_val = load_dataset()
-	x_train, vectorizer = extract_features(x_train)
-	x_test = vectorizer.transform(x_test)
-	x_val = vectorizer.transform(x_val)
-	x_res, y_res = SMOTE().fit_resample(x_train, y_train)
-	model = train_model(x_res, y_res, x_val, y_val)
-	""" with open("model.pkl", "rb") as file:
-		model = load(file) """
+
+	try:
+		with open("vectorizer.pkl", "rb") as file:
+			vectorizer = load(file)
+
+		with open("model.pkl", "rb") as file:
+			print("available model")
+			model = load(file)
+   
+		x_test = vectorizer.transform(x_test)	
+	except FileNotFoundError:
+		print("new model being trained")
+		x_train, vectorizer = extract_features(x_train)
+		x_test = vectorizer.transform(x_test)
+		x_val = vectorizer.transform(x_val)
+		x_res, y_res = SMOTE().fit_resample(x_train, y_train)
+		model = train_model(x_res, y_res, x_val, y_val)
 	evaluate_model(model, x_test, y_test)
