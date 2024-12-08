@@ -57,12 +57,10 @@ if __name__ == "__main__":
 			vectorizer = load(file)
 
 		with open("model.pkl", "rb") as file:
-			print("available model")
 			model = load(file)
    
 		x_test = vectorizer.transform(x_test)	
 	except FileNotFoundError:
-		print("new model being trained")
 		x_train, vectorizer = extract_features(x_train)
 		x_test = vectorizer.transform(x_test)
 		x_val = vectorizer.transform(x_val)
