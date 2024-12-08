@@ -8,7 +8,7 @@ from pickle import load, dump
 
 
 def load_dataset():
-	with open("FinancialPhraseBank-v1.0/Sentences_AllAgree.txt", "r", encoding = "latin1") as file:
+	with open("FinancialPhraseBank-v1.0/Sentences_50Agree.txt", "r", encoding = "latin1") as file:
 		data = file.read()
 	data = [line.split("@") for line in data.split("\n") if line]
 	x = [line[0] for line in data]
