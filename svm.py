@@ -3,7 +3,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import balanced_accuracy_score, precision_score, recall_score, f1_score
-from imblearn.over_sampling import SMOTE
 from pickle import load, dump
 
 
@@ -20,8 +19,8 @@ def load_dataset():
 
 
 def extract_features(x_train):
-	stop_words = [' \'s', 'the', ' (', ' )', ' .',  'herein', 'thereby', 'whereas', 'hereinbefore', 'aforementioned', 'the']	
-	vectorizer = TfidfVectorizer(ngram_range=(1, 4), max_df=0.5, sublinear_tf=True, stop_words=stop_words)
+	stop_words = [' \'s', 'the', ' (', ' )', ' .',  'herein', 'thereby', 'whereas', 'hereinbefore', 'aforementioned', 'a', 'this', 'that', 'is', 'are', 'be', 'was', 'were', 'and', 'or']	
+	vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_df=0.5, sublinear_tf=True, stop_words=stop_words)
 	x_train = vectorizer.fit_transform(x_train)
 	with open("vectorizer.pkl", "wb") as file:
 		dump(vectorizer, file)
@@ -40,6 +39,7 @@ def train_model(x_train, y_train, x_val, y_val):
 	}
 	optimizer = GridSearchCV(_model, params, scoring="balanced_accuracy", n_jobs=-1, verbose=3)
 	optimizer.fit(x_val, y_val)
+	print(f"Best params: {optimizer.best_params_}")
 	model = optimizer.best_estimator_.fit(x_train, y_train)
 	with open("model.pkl", "wb") as file:
 		dump(model, file)
@@ -47,10 +47,10 @@ def train_model(x_train, y_train, x_val, y_val):
 
 def evaluate_model(model, x_test, y_test):
 	y_pred = model.predict(x_test)
-	print("Balanced accuracy:", balanced_accuracy_score(y_test, y_pred))
-	print("Precision:", precision_score(y_test, y_pred, average="weighted"))
-	print("Recall:", recall_score(y_test, y_pred, average="weighted"))
-	print("F1:", f1_score(y_test, y_pred, average="weighted"))
+	print("Balanced accuracy:", round(balanced_accuracy_score(y_test, y_pred), 4))
+	print("Precision:", round(precision_score(y_test, y_pred, average="weighted"), 4))
+	print("Recall:", round(recall_score(y_test, y_pred, average="weighted"), 4))
+	print("F1:", round(f1_score(y_test, y_pred, average="weighted"), 4))
 
 if __name__ == "__main__":
 	x_train, x_test, x_val, y_train, y_test, y_val = load_dataset()
@@ -67,6 +67,5 @@ if __name__ == "__main__":
 		x_train, vectorizer = extract_features(x_train)
 		x_test = vectorizer.transform(x_test)
 		x_val = vectorizer.transform(x_val)
-		x_res, y_res = SMOTE(random_state=0).fit_resample(x_train, y_train)
-		model = train_model(x_res, y_res, x_val, y_val)
+		model = train_model(x_train, y_train, x_val, y_val)
 	evaluate_model(model, x_test, y_test)
